@@ -80,14 +80,6 @@ $res = $pb->badge(2);
 echo 'badge:';
 var_dump($res);
 
-$res = $pb->badgeCollections();
-echo 'badgeCollections:';
-var_dump($res);
-
-$res = $pb->badgeCollection(1);
-echo 'badgeCollection:';
-var_dump($res);
-
 $res = $pb->actionConfig();
 echo 'actionConfig:';
 var_dump($res);
