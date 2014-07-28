@@ -26,6 +26,17 @@ class Playbasis
 		$this->token = $result['response']['token'];
 		return $this->token != false && is_string($this->token);
 	}
+
+    public function renew($apiKey, $apiSecret)
+    {
+        $this->apiKeyParam = "?api_key=$apiKey";
+        $result = $this->call('Auth/renew', array(
+            'api_key' => $apiKey,
+            'api_secret' => $apiSecret
+        ));
+        $this->token = $result['response']['token'];
+        return $this->token != false && is_string($this->token);
+    }
 	
 	/*
 	 * @param	$channel	Set this value to the domain of your site (ex. yoursite.com) to receive the response of async calls via our response server.
@@ -37,7 +48,7 @@ class Playbasis
 		curl_setopt($ch, CURLOPT_URL, self::BASE_ASYNC_URL."channel/verify/$channel");
 		curl_setopt($ch, CURLOPT_HEADER, FALSE);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-		curl_setopt($ch, CURLOPT_USERAGENT, 'CURL AGENT');
+		curl_setopt($ch, CURLOPT_USERAGENT, 'Playbasis SDK php');
 		curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -51,12 +62,28 @@ class Playbasis
 		}
 		return false;
 	}
-	
+
 	public function player($playerId)
 	{
 		return $this->call("Player/$playerId", array('token' => $this->token));
 	}
-	
+
+    /*
+     * $playerListId player id as used in client's website separate with ',' example '1,2,3'
+     */
+    public function playerList($playerListId)
+    {
+        return $this->call("Player/list", array('token' => $this->token, 'list_player_id' => $playerListId));
+    }
+
+    /*
+     * Get detailed information about a player, including points and badges
+     */
+    public function playerDetail($playerId)
+    {
+        return $this->call("Player/$playerId/data/all", array('token' => $this->token));
+    }
+
 	/*
 	 * @param	$optionalData	Key-value for additional parameters to be sent to the register method.
 	 * 							The following keys are supported:
@@ -152,6 +179,13 @@ class Playbasis
 	{
 		return $this->call("Player/$playerId/point/$pointName" . $this->apiKeyParam);
 	}
+
+    public function pointHistory($playerId, $pointName='', $offset=0, $limit=20)
+    {
+        $string_query = '&offset='.$offset.'&limit='.$limit;
+        if($pointName != '')$string_query = $string_query."&point_name=".$pointName;
+        return $this->call("Player/$playerId/point_history" . $this->apiKeyParam . $string_query);
+    }
 	
 	public function actionLastPerformed($playerId)
 	{
@@ -177,27 +211,67 @@ class Playbasis
 	{
 		return $this->call("Player/rank/$rankedBy/$limit" . $this->apiKeyParam);
 	}
-	
-	public function badges()
-	{
-		return $this->call("Badge" . $this->apiKeyParam);
-	}
-	
-	public function badge($badgeId)
-	{
-		return $this->call("Badge/$badgeId" . $this->apiKeyParam);
-	}
-	
-	public function badgeCollections()
-	{
-		return $this->call("Badge/collection" . $this->apiKeyParam);
-	}
-	
-	public function badgeCollection($collectionId)
-	{
-		return $this->call("Badge/collection/$collectionId" . $this->apiKeyParam);
-	}
-	
+
+    public function ranks($limit)
+    {
+        return $this->call("Player/ranks/$limit" . $this->apiKeyParam);
+    }
+
+    public function levels()
+    {
+        return $this->call("Player/levels" . $this->apiKeyParam);
+    }
+
+    public function level($level)
+    {
+        return $this->call("Player/level/$level" . $this->apiKeyParam);
+    }
+
+    public function claimBadge($playerId, $badgeId)
+    {
+        return $this->call("Player/$playerId/badge/$badgeId/claim", array('token' => $this->token));
+    }
+
+    public function redeemBadge($playerId, $badgeId)
+    {
+        return $this->call("Player/$playerId/badge/$badgeId/redeem", array('token' => $this->token));
+    }
+
+    public function goodsOwned($playerId)
+    {
+        return $this->call("Player/$playerId/goods" . $this->apiKeyParam);
+    }
+
+    public function questOfPlayer($playerId, $quest_id)
+    {
+        return $this->call("Player/quest/$quest_id" . $this->apiKeyParam . "&player_id=" . $playerId);
+    }
+
+    public function questListOfPlayer($playerId)
+    {
+        return $this->call("Player/quest". $this->apiKeyParam . "&player_id=" . $playerId);
+    }
+
+    public function badges()
+    {
+        return $this->call("Badge" . $this->apiKeyParam);
+    }
+
+    public function badge($badgeId)
+    {
+        return $this->call("Badge/$badgeId" . $this->apiKeyParam);
+    }
+
+    public function goodsList()
+    {
+        return $this->call("Goods" . $this->apiKeyParam);
+    }
+
+    public function goods($goodsId)
+    {
+        return $this->call("Goods/$goodsId" . $this->apiKeyParam);
+    }
+
 	public function actionConfig()
 	{
 		return $this->call("Engine/actionConfig" . $this->apiKeyParam);
@@ -226,14 +300,100 @@ class Playbasis
 			'action' => $action
 		), $optionalData), $this->respChannel);
 	}
-	
+
+    public function quests()
+    {
+        return $this->call("Quest" . $this->apiKeyParam);
+    }
+
+    public function quest($questId)
+    {
+        return $this->call("Quest/$questId" . $this->apiKeyParam);
+    }
+
+    public function mission($questId, $missionId)
+    {
+        return $this->call("Quest/$questId/mission/$missionId" . $this->apiKeyParam);
+    }
+
+    /* Returns information about list of quest is available for player. */
+    public function questsAvailable($playerId)
+    {
+        return $this->call("Quest/available" . $this->apiKeyParam . "&player_id=" . $playerId);
+    }
+
+    /* check the quest is available/unavailable for player. */
+    public function questAvailable($questId, $playerId)
+    {
+        return $this->call("Quest/$questId/available" . $this->apiKeyParam . "&player_id=" . $playerId);
+    }
+
+    public function joinQuest($questId, $playerId)
+    {
+        return $this->call("Quest/$questId/join", array(
+            'token' => $this->token,
+            'player_id' => $playerId
+        ));
+    }
+    public function joinQuest_async($questId, $playerId)
+    {
+        return $this->call_async("Quest/$questId/join", array(
+            'token' => $this->token,
+            'player_id' => $playerId
+        ), $this->respChannel);
+    }
+
+    public function cancelQuest($questId, $playerId)
+    {
+        return $this->call("Quest/$questId/cancel", array(
+            'token' => $this->token,
+            'player_id' => $playerId
+        ));
+    }
+    public function cancelQuest_async($questId, $playerId)
+    {
+        return $this->call_async("Quest/$questId/cancel", array(
+            'token' => $this->token,
+            'player_id' => $playerId
+        ), $this->respChannel);
+    }
+
+    public function redeemGoods($goodsId, $playerId, $amount=1)
+    {
+        return $this->call("Redeem/goods", array(
+            'token' => $this->token,
+            'goods_id' => $goodsId,
+            'player_id' => $playerId,
+            'amount' => $amount,
+        ));
+    }
+    public function redeemGoods_async($goodsId, $playerId, $amount=1)
+    {
+        return $this->call_async("Redeem/goods", array(
+            'token' => $this->token,
+            'goods_id' => $goodsId,
+            'player_id' => $playerId,
+            'amount' => $amount,
+        ), $this->respChannel);
+    }
+
+    public function recentPoint($offset=0, $limit=10)
+    {
+        return $this->call("Service/recent_point" . $this->apiKeyParam ."&offset=".$offset."&limit=".$limit);
+    }
+
+    public function recentPointByName($point_name, $offset=0, $limit=10)
+    {
+        return $this->call("Service/recent_point" . $this->apiKeyParam  ."&offset=".$offset."&limit=".$limit."&point_name=".$point_name);
+    }
+
 	public function call($method, $data = null) 
 	{
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, self::BASE_URL . $method);
 		curl_setopt($ch, CURLOPT_HEADER, FALSE);					// turn off output
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);				// refuse response from called server
-		curl_setopt($ch, CURLOPT_USERAGENT, 'CURL AGENT');			// set agent
+		curl_setopt($ch, CURLOPT_USERAGENT, 'Playbasis SDK php');			// set agent
 		curl_setopt($ch, CURLOPT_TIMEOUT, 10);						// times for execute
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);				// times for try to connect
 		if($data)
@@ -258,7 +418,7 @@ class Playbasis
 		curl_setopt($ch, CURLOPT_URL, self::BASE_ASYNC_URL.'call');
 		curl_setopt($ch, CURLOPT_HEADER, FALSE);					// turn off output
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);				// refuse response from called server
-		curl_setopt($ch, CURLOPT_USERAGENT, 'CURL AGENT');			// set agent
+		curl_setopt($ch, CURLOPT_USERAGENT, 'Playbasis SDK php');			// set agent
 		curl_setopt($ch, CURLOPT_TIMEOUT, 1);						// times for execute
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);				// times for try to connect
 		if($data)
